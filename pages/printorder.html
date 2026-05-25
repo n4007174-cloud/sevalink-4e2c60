@@ -934,7 +934,7 @@ function buildSummary() {
 async function submitOrder() {
   const btn = document.getElementById('confirmBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Sending order...';
+  btn.textContent = '⏳ Preparing WhatsApp Message...';
 
   const copies = document.getElementById('numCopies').value;
   const pages  = document.getElementById('numPages').value;
@@ -952,45 +952,11 @@ async function submitOrder() {
 
   const trackId = 'SL' + Date.now().toString().slice(-8).toUpperCase();
 
-  // --- 1. First, dispatch Email via EmailJS ---
-  try {
-    const emailParams = {
-      to_email:   CONFIG.shopEmail,
-      order_id:   trackId,
-      cust_name:  name,
-      cust_phone: phone,
-      cust_email: email,
-      delivery:   deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery — ' + addr,
-      color:      specs.color === 'bw' ? 'Black & White' : 'Color',
-      sides:      specs.sides === 'single' ? 'Single Sided' : 'Double Sided',
-      paper:      specs.size.toUpperCase(),
-      copies:     copies,
-      pages:      pages,
-      file_name:  file ? file.name : 'N/A',
-      spec_notes: notes,
-      amount:     '₹' + total,
-      txn_id:     txnId,
-    };
-
-    // Explicitly awaiting ensures email pipeline fires fully before browser switches tasks
-    await emailjs.send(
-      CONFIG.emailjsServiceId, 
-      CONFIG.emailjsTemplateId, 
-      emailParams, 
-      CONFIG.emailjsPublicKey
-    );
-    console.log('Email dispatched successfully via EmailJS.');
-
-  } catch (e) {
-    console.error('EmailJS execution failed:', e);
-    alert('Email Error: ' + JSON.stringify(e) + '\nProceeding to open WhatsApp regardless.');
-  }
-
-  // --- 2. Build and trigger WhatsApp ---
+  // --- 1. Build order message alerting the shop to look for the file ---
   const orderMsg = `
 🖨️ *NEW PRINT ORDER — SevaLink*
 ━━━━━━━━━━━━━━━━━━
-🔖 Order ID: ${trackId}
+🔖 *Order ID:* ${trackId}
 ━━━━━━━━━━━━━━━━━━
 👤 *Customer Details*
 • Name: ${name}
@@ -1005,19 +971,32 @@ async function submitOrder() {
 • Paper: ${specs.size.toUpperCase()}
 • Copies: ${copies}
 • Pages: ${pages}
-• File: ${file ? file.name : 'N/A'}
 • Notes: ${notes}
 ━━━━━━━━━━━━━━━━━━
 💰 *Payment*
 • Amount: ₹${total}
 • Txn ID: ${txnId}
 ━━━━━━━━━━━━━━━━━━
+📎 *ATTACHED FILE:* ${file ? file.name : 'N/A'}
+⚠️ _[Customer: Please use the clip icon in WhatsApp to attach this file now!]_
   `.trim();
 
+  // --- 2. Copy the text details to clipboard as a fallback backup ---
+  try {
+    await navigator.clipboard.writeText(orderMsg);
+    console.log('Order text copied to clipboard.');
+  } catch (err) {
+    console.warn('Could not copy text automatically: ', err);
+  }
+
+  // --- 3. Alert the user exactly what to do next ---
+  alert(`📋 Order generated successfully!\n\n1. WhatsApp will now open.\n2. Paste/Send your order details.\n3. Tap the Attach (📎) button in WhatsApp to select and send your document: "${file ? file.name : 'your file'}".`);
+
+  // --- 4. Launch WhatsApp link ---
   const waUrl = 'https://wa.me/' + CONFIG.whatsappNumber + '?text=' + encodeURIComponent(orderMsg);
   window.open(waUrl, '_blank');
 
-  // --- 3. Save to localStorage ---
+  // --- 5. Save to local state ledger ---
   const orders = JSON.parse(localStorage.getItem('sevaOrders') || '[]');
   orders.push({
     id: trackId, name, phone, email, deliveryType, addr,
@@ -1028,7 +1007,7 @@ async function submitOrder() {
   });
   localStorage.setItem('sevaOrders', JSON.stringify(orders));
 
-  // --- 4. Show success interface state ---
+  // --- 6. Transition UX into success modal state ---
   document.getElementById('trackingDisplay').textContent = trackId;
   document.getElementById('successModal').classList.add('open');
   btn.disabled = false;
