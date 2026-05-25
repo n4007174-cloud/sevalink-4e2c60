@@ -927,32 +927,47 @@ function buildSummary() {
   ).join('');
 }
 
-// =====================================================
-//  SUBMIT ORDER
-// =====================================================
-
 function submitOrder() {
   const btn = document.getElementById('confirmBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Processing Order...';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Processing Order...';
+  }
 
-  const copies = document.getElementById('numCopies').value;
-  const pages  = document.getElementById('numPages').value;
-  const rate   = getRate();
-  const total  = rate * parseInt(copies) * parseInt(pages);
-  const file   = document.getElementById('docFile').files[0];
-  const name   = document.getElementById('custName').value;
-  const phone  = document.getElementById('custPhone').value;
-  const email  = document.getElementById('custEmail').value;
-  const txnId  = document.getElementById('txnId').value;
-  const notes  = document.getElementById('specNotes').value || 'None';
-  const addr   = deliveryType === 'delivery'
-    ? document.getElementById('custAddress').value + ', Pin: ' + document.getElementById('custPin').value
-    : 'Store Pickup';
+  // --- SAFE VALUE EXTRACTION (Prevents script crashes) ---
+  const custNameEl = document.getElementById('custName');
+  const custPhoneEl = document.getElementById('custPhone');
+  const custEmailEl = document.getElementById('custEmail');
+  const numCopiesEl = document.getElementById('numCopies');
+  const numPagesEl = document.getElementById('numPages');
+  const txnIdEl = document.getElementById('txnId');
+  const specNotesEl = document.getElementById('specNotes');
+  const docFileEl = document.getElementById('docFile');
+  const custAddressEl = document.getElementById('custAddress');
+  const custPinEl = document.getElementById('custPin');
+
+  const name   = custNameEl ? custNameEl.value.trim() : "Unknown";
+  const phone  = custPhoneEl ? custPhoneEl.value.trim() : "Unknown";
+  const email  = custEmailEl ? custEmailEl.value.trim() : "Unknown";
+  const copies = numCopiesEl ? numCopiesEl.value : "1";
+  const pages  = numPagesEl ? numPagesEl.value : "1";
+  const txnId  = txnIdEl ? txnIdEl.value.trim() : "N/A";
+  const notes  = specNotesEl ? specNotesEl.value.trim() : "None";
+  
+  let addr = "Store Pickup";
+  if (deliveryType === 'delivery') {
+    const rawAddr = custAddressEl ? custAddressEl.value.trim() : "";
+    const rawPin = custPinEl ? custPinEl.value.trim() : "";
+    addr = `${rawAddr}, Pin: ${rawPin}`;
+  }
+
+  const rate  = getRate();
+  const total = rate * parseInt(copies) * parseInt(pages);
+  const file  = (docFileEl && docFileEl.files) ? docFileEl.files[0] : null;
 
   const trackId = 'SL' + Date.now().toString().slice(-8).toUpperCase();
 
-  // --- 1. Prepare EmailJS Variables (Saves data to your email dashboard) ---
+  // --- 1. SEND EMAIL DETAILS VIA EMAILJS ---
   const emailParams = {
     to_email:   CONFIG.shopEmail,
     order_id:   trackId,
@@ -971,47 +986,73 @@ function submitOrder() {
     txn_id:     txnId
   };
 
-  // Trigger EmailJS in the background (no 'await' so it doesn't pause the UI)
+  console.log("Attempting to send receipt to EmailJS...", emailParams);
+  
   emailjs.send(CONFIG.emailjsServiceId, CONFIG.emailjsTemplateId, emailParams, CONFIG.emailjsPublicKey)
-    .then(res => console.log("Receipt email successfully dispatched:", res.status))
-    .catch(err => console.error("Email layout notification error:", err));
+    .then(res => console.log("EmailJS Success response:", res.status, res.text))
+    .catch(err => {
+      console.error("EmailJS Failed response:", err);
+      alert("EmailJS Configuration Error: " + JSON.stringify(err));
+    });
 
-  // --- 2. Build WhatsApp Prompt for the File ---
+  // --- 2. BUILD WHATSAPP MESSAGE ---
   const orderMsg = `
-🖨️ *NEW ORDER FILE ATTACHMENT — SevaLink*
+🖨️ *NEW PRINT ORDER — SevaLink*
 ━━━━━━━━━━━━━━━━━━
 🔖 *Order ID:* ${trackId}
-👤 *Customer Name:* ${name}
-📎 *Expected File:* ${file ? file.name : 'N/A'}
 ━━━━━━━━━━━━━━━━━━
-⚠️ *CUSTOMER:* Please tap the paperclip icon (📎) below to attach and send your document file now!
-`.trim();
+👤 *Customer Details*
+• Name: ${name}
+• Mobile: ${phone}
+• Email: ${email}
+• Delivery: ${deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery'}
+• Address: ${addr}
+━━━━━━━━━━━━━━━━━━
+🖨️ *Specifications*
+• Color: ${specs.color === 'bw' ? 'Black & White' : 'Color'}
+• Sides: ${specs.sides === 'single' ? 'Single Sided' : 'Double Sided'}
+• Paper: ${specs.size.toUpperCase()}
+• Copies: ${copies}
+• Pages: ${pages}
+• Notes: ${notes}
+━━━━━━━━━━━━━━━━━━
+💰 *Payment*
+• Amount: ₹${total}
+• Txn ID: ${txnId}
+━━━━━━━━━━━━━━━━━━
+📎 *EXPECTED FILE:* ${file ? file.name : 'N/A'}
 
-  // --- 3. Open WhatsApp instantly to dodge browser popup blocks ---
+⚠️ *CUSTOMER:* Please tap the paperclip attachment icon (📎) below to attach and send your file along with this text!
+  `.trim();
+
+  // --- 3. OPEN WHATSAPP INSTANTLY ---
   const waUrl = 'https://wa.me/' + CONFIG.whatsappNumber + '?text=' + encodeURIComponent(orderMsg);
   window.open(waUrl, '_blank');
 
-  // --- 4. Local App Tracking ---
+  // --- 4. BACKUP TO LOCAL STORAGE ---
   try {
     const orders = JSON.parse(localStorage.getItem('sevaOrders') || '[]');
     orders.push({
       id: trackId, name, phone, email, deliveryType, addr,
-      specs, copies, pages, file: file?.name, notes,
-      amount: total, txnId,
-      status: 'Pending',
-      date: new Date().toLocaleString('en-IN'),
+      specs, copies, pages, file: file ? file.name : 'N/A', notes,
+      amount: total, txnId, status: 'Pending', date: new Date().toLocaleString('en-IN'),
     });
     localStorage.setItem('sevaOrders', JSON.stringify(orders));
   } catch(e) {
-    console.warn("Storage syncing bypassed:", e);
+    console.warn("Local storage tracking skipped.");
   }
 
-  // --- 5. Launch UI Success Modal ---
-  document.getElementById('trackingDisplay').textContent = trackId;
-  document.getElementById('successModal').classList.add('open');
+  // --- 5. SHOW SUCCESS DIALOGUE SCREEN ---
+  const trackingDisplayEl = document.getElementById('trackingDisplay');
+  const successModalEl = document.getElementById('successModal');
   
-  btn.disabled = false;
-  btn.textContent = '🚀 Place Order & Notify Shop';
+  if (trackingDisplayEl) trackingDisplayEl.textContent = trackId;
+  if (successModalEl) successModalEl.classList.add('open');
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🚀 Place Order & Notify Shop';
+  }
 }
 </script>
 </body>
