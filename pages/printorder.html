@@ -768,7 +768,7 @@ const CONFIG = {
 let specs = { color: 'bw', sides: 'single', size: 'a4' };
 let deliveryType = 'pickup';
 
-// Initialize EmailJS cleanly using your layout public key
+// Initialize EmailJS cleanly
 emailjs.init(CONFIG.emailjsPublicKey);
 
 // =====================================================
@@ -931,10 +931,10 @@ function buildSummary() {
 //  SUBMIT ORDER
 // =====================================================
 
-async function submitOrder() {
+function submitOrder() {
   const btn = document.getElementById('confirmBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Preparing WhatsApp Message...';
+  btn.textContent = '⏳ Processing Order...';
 
   const copies = document.getElementById('numCopies').value;
   const pages  = document.getElementById('numPages').value;
@@ -952,64 +952,64 @@ async function submitOrder() {
 
   const trackId = 'SL' + Date.now().toString().slice(-8).toUpperCase();
 
-  // --- 1. Build order message alerting the shop to look for the file ---
+  // --- 1. Prepare EmailJS Variables (Saves data to your email dashboard) ---
+  const emailParams = {
+    to_email:   CONFIG.shopEmail,
+    order_id:   trackId,
+    cust_name:  name,
+    cust_phone: phone,
+    cust_email: email,
+    delivery:   deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery — ' + addr,
+    color:      specs.color === 'bw' ? 'Black & White' : 'Color',
+    sides:      specs.sides === 'single' ? 'Single Sided' : 'Double Sided',
+    paper:      specs.size.toUpperCase(),
+    copies:     copies,
+    pages:      pages,
+    file_name:  file ? file.name : 'N/A',
+    spec_notes: notes,
+    amount:     '₹' + total,
+    txn_id:     txnId
+  };
+
+  // Trigger EmailJS in the background (no 'await' so it doesn't pause the UI)
+  emailjs.send(CONFIG.emailjsServiceId, CONFIG.emailjsTemplateId, emailParams, CONFIG.emailjsPublicKey)
+    .then(res => console.log("Receipt email successfully dispatched:", res.status))
+    .catch(err => console.error("Email layout notification error:", err));
+
+  // --- 2. Build WhatsApp Prompt for the File ---
   const orderMsg = `
-🖨️ *NEW PRINT ORDER — SevaLink*
+🖨️ *NEW ORDER FILE ATTACHMENT — SevaLink*
 ━━━━━━━━━━━━━━━━━━
 🔖 *Order ID:* ${trackId}
+👤 *Customer Name:* ${name}
+📎 *Expected File:* ${file ? file.name : 'N/A'}
 ━━━━━━━━━━━━━━━━━━
-👤 *Customer Details*
-• Name: ${name}
-• Mobile: ${phone}
-• Email: ${email}
-• Delivery: ${deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery'}
-• Address: ${addr}
-━━━━━━━━━━━━━━━━━━
-🖨️ *Print Specifications*
-• Color: ${specs.color === 'bw' ? 'Black & White' : 'Color'}
-• Sides: ${specs.sides === 'single' ? 'Single Sided' : 'Double Sided'}
-• Paper: ${specs.size.toUpperCase()}
-• Copies: ${copies}
-• Pages: ${pages}
-• Notes: ${notes}
-━━━━━━━━━━━━━━━━━━
-💰 *Payment*
-• Amount: ₹${total}
-• Txn ID: ${txnId}
-━━━━━━━━━━━━━━━━━━
-📎 *ATTACHED FILE:* ${file ? file.name : 'N/A'}
-⚠️ _[Customer: Please use the clip icon in WhatsApp to attach this file now!]_
-  `.trim();
+⚠️ *CUSTOMER:* Please tap the paperclip icon (📎) below to attach and send your document file now!
+`.trim();
 
-  // --- 2. Copy the text details to clipboard as a fallback backup ---
-  try {
-    await navigator.clipboard.writeText(orderMsg);
-    console.log('Order text copied to clipboard.');
-  } catch (err) {
-    console.warn('Could not copy text automatically: ', err);
-  }
-
-  // --- 3. Alert the user exactly what to do next ---
-  alert(`📋 Order generated successfully!\n\n1. WhatsApp will now open.\n2. Paste/Send your order details.\n3. Tap the Attach (📎) button in WhatsApp to select and send your document: "${file ? file.name : 'your file'}".`);
-
-  // --- 4. Launch WhatsApp link ---
+  // --- 3. Open WhatsApp instantly to dodge browser popup blocks ---
   const waUrl = 'https://wa.me/' + CONFIG.whatsappNumber + '?text=' + encodeURIComponent(orderMsg);
   window.open(waUrl, '_blank');
 
-  // --- 5. Save to local state ledger ---
-  const orders = JSON.parse(localStorage.getItem('sevaOrders') || '[]');
-  orders.push({
-    id: trackId, name, phone, email, deliveryType, addr,
-    specs, copies, pages, file: file?.name, notes,
-    amount: total, txnId,
-    status: 'Pending',
-    date: new Date().toLocaleString('en-IN'),
-  });
-  localStorage.setItem('sevaOrders', JSON.stringify(orders));
+  // --- 4. Local App Tracking ---
+  try {
+    const orders = JSON.parse(localStorage.getItem('sevaOrders') || '[]');
+    orders.push({
+      id: trackId, name, phone, email, deliveryType, addr,
+      specs, copies, pages, file: file?.name, notes,
+      amount: total, txnId,
+      status: 'Pending',
+      date: new Date().toLocaleString('en-IN'),
+    });
+    localStorage.setItem('sevaOrders', JSON.stringify(orders));
+  } catch(e) {
+    console.warn("Storage syncing bypassed:", e);
+  }
 
-  // --- 6. Transition UX into success modal state ---
+  // --- 5. Launch UI Success Modal ---
   document.getElementById('trackingDisplay').textContent = trackId;
   document.getElementById('successModal').classList.add('open');
+  
   btn.disabled = false;
   btn.textContent = '🚀 Place Order & Notify Shop';
 }
