@@ -1,1 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Print & Scan Order — SevaLink</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    .po-header {
+      background: linear-gradient(135deg, #1a1f2e, #16213e);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid #2d3748;
+    }
+
+    .po-header a {
+      color: #63b3ed;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .po-header h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .po-header span { color: #4a5568; }
+
+    /* Progress Bar */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem 1rem;
+      gap: 0;
+    }
+
+    .pb-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pb-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #2d3748;
+      border: 2px solid #4a5568;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #718096;
+      transition: all 0.3s;
+    }
+
+    .pb-circle.active {
+      background: #3182ce;
+      border-color: #3182ce;
+      color: #fff;
+    }
+
+    .pb-circle.done {
+      background: #38a169;
+      border-color: #38a169;
+      color: #fff;
+    }
+
+    .pb-label {
+      font-size: 0.72rem;
+      color: #718096;
+      white-space: nowrap;
+    }
+
+    .pb-label.active { color: #63b3ed; }
+
+    .pb-line {
+      flex: 1;
+      height: 2px;
+      background: #2d3748;
+      max-width: 80px;
+      margin-bottom: 22px;
+      transition: background 0.3s;
+    }
+
+    .pb-line.done { background: #38a169; }
+
+    /* Container */
+    .po-container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem;
+    }
+
+    /* Step */
+    .step { display: none; }
+    .step.active { display: block; }
+
+    .step-card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 14px;
+      padding: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .step-card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-card h2 .icon {
+      width: 32px;
+      height: 32px;
+      background: #2d3748;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    /* Form Elements */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-row.single { grid-template-columns: 1fr; }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      color: #a0aec0;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    label span.req { color: #fc8181; }
+
+    input, select, textarea {
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      color: #e2e8f0;
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #3182ce;
+    }
+
+    select option { background: #1a1f2e; }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* Spec Options */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+
+    .spec-option {
+      background: #0f1117;
+      border: 1.5px solid #2d3748;
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .spec-option:hover { border-color: #4a5568; }
+    .spec-option.selected { border-color: #3182ce; background: #1a365d; }
+
+    .spec-option .spec-icon { font-size: 1.4rem; margin-bottom: 4px; }
+
+    .spec-option .spec-label {
+      font-size: 0.8rem;
+      color: #a0aec0;
+      font-weight: 500;
+    }
+
+    .spec-option.selected .spec-label { color: #63b3ed; }
+
+    /* File Upload */
+    .upload-zone {
+      border: 2px dashed #2d3748;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .upload-zone:hover { border-color: #3182ce; background: #1a1f2e; }
+    .upload-zone.has-file { border-color: #38a169; background: #1a2e1a; }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+
+    .upload-text {
+      font-size: 0.88rem;
+      color: #718096;
+    }
+
+    .upload-text strong { color: #63b3ed; }
+    .file-name { font-size: 0.85rem; color: #68d391; margin-top: 6px; }
+
+    /* Price Estimator */
+    .price-box {
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      margin-top: 1rem;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      color: #a0aec0;
+      padding: 4px 0;
+    }
+
+    .price-row.total {
+      border-top: 1px solid #2d3748;
+      margin-top: 8px;
+      padding-top: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .price-row.total span:last-child { color: #68d391; }
+
+    /* QR Payment */
+    .qr-container {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .qr-img {
+      width: 200px;
+      height: 200px;
+      border: 3px solid #2d3748;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .qr-placeholder {
+      width: 200px;
+      height: 200px;
+      border: 3px dashed #3182ce;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      background: #1a1f2e;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .qr-placeholder input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .qr-amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #68d391;
+      margin: 1rem 0 0.3rem;
+    }
+
+    .qr-instruction {
+      font-size: 0.85rem;
+      color: #a0aec0;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+
+    .txn-box {
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 1.2rem;
+      margin-top: 1.5rem;
+    }
+
+    .txn-box label {
+      font-size: 0.88rem;
+      color: #a0aec0;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    /* Summary */
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid #2d3748;
+      font-size: 0.9rem;
+    }
+
+    .summary-item:last-child { border-bottom: none; }
+    .summary-item .s-label { color: #718096; }
+    .summary-item .s-value { color: #e2e8f0; font-weight: 500; text-align: right; max-width: 60%; }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 1.5rem;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 0.75rem 1.8rem;
+      border-radius: 9px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-back {
+      background: #2d3748;
+      color: #a0aec0;
+    }
+
+    .btn-back:hover { background: #4a5568; }
+
+    .btn-next {
+      background: #3182ce;
+      color: #fff;
+    }
+
+    .btn-next:hover { background: #2b6cb0; }
+    .btn-next:disabled { background: #1a365d; color: #4a5568; cursor: not-allowed; }
+
+    .btn-confirm {
+      background: linear-gradient(135deg, #38a169, #2f855a);
+      color: #fff;
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+    }
+
+    .btn-confirm:hover { background: linear-gradient(135deg, #2f855a, #276749); }
+    .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Success Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .modal-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .modal-box h2 { font-size: 1.4rem; color: #fff; margin-bottom: 0.5rem; }
+    .modal-box p { color: #a0aec0; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    .track-id {
+      background: #0f1117;
+      border: 1px solid #38a169;
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      font-family: monospace;
+      font-size: 1rem;
+      color: #68d391;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .modal-box .btn {
+      background: #3182ce;
+      color: #fff;
+      padding: 0.75rem 2rem;
+    }
+
+    /* Delivery Toggle */
+    .delivery-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+
+    .delivery-btn {
+      flex: 1;
+      padding: 0.7rem;
+      border-radius: 9px;
+      border: 1.5px solid #2d3748;
+      background: #0f1117;
+      color: #a0aec0;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .delivery-btn.active {
+      border-color: #3182ce;
+      background: #1a365d;
+      color: #63b3ed;
+    }
+
+    .delivery-extra { display: none; }
+    .delivery-extra.show { display: block; }
+
+    @media (max-width: 500px) {
+      .form-row { grid-template-columns: 1fr; }
+      .spec-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="po-header">
+  <a href="../index.html">← Back</a>
+  <span>/</span>
+  <h1>🖨️ Print & Scan Order</h1>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar">
+  <div class="pb-step">
+    <div class="pb-circle active" id="pc1">1</div>
+    <div class="pb-label active" id="pl1">Details</div>
+  </div>
+  <div class="pb-line" id="pline1"></div>
+  <div class="pb-step">
+    <div class="pb-circle" id="pc2">2</div>
+    <div class="pb-label" id="pl2">Upload</div>
+  </div>
+  <div class="pb-line" id="pline2"></div>
+  <div class="pb-step">
+    <div class="pb-circle" id="pc3">3</div>
+    <div class="pb-label" id="pl3">Payment</div>
+  </div>
+  <div class="pb-line" id="pline3"></div>
+  <div class="pb-step">
+    <div class="pb-circle" id="pc4">4</div>
+    <div class="pb-label" id="pl4">Confirm</div>
+  </div>
+</div>
+
+<div class="po-container">
+
+  <!-- ===== STEP 1: Customer Details ===== -->
+  <div class="step active" id="step1">
+    <div class="step-card">
+      <h2><div class="icon">👤</div> Your Details</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" id="custName" placeholder="e.g. Rahul Sharma" />
+        </div>
+        <div class="form-group">
+          <label>Mobile Number <span class="req">*</span></label>
+          <input type="tel" id="custPhone" placeholder="e.g. 9876543210" maxlength="10" />
+        </div>
+      </div>
+
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Email (for order confirmation) <span class="req">*</span></label>
+          <input type="email" id="custEmail" placeholder="e.g. rahul@gmail.com" />
+        </div>
+      </div>
+
+      <!-- Delivery / Pickup Toggle -->
+      <label style="margin-bottom:8px; display:block;">Delivery Option <span class="req">*</span></label>
+      <div class="delivery-toggle">
+        <button class="delivery-btn active" onclick="setDelivery('pickup', this)">🏪 Store Pickup</button>
+        <button class="delivery-btn" onclick="setDelivery('delivery', this)">🚚 Home Delivery</button>
+      </div>
+
+      <div class="delivery-extra" id="deliveryFields">
+        <div class="form-row single">
+          <div class="form-group">
+            <label>Full Address <span class="req">*</span></label>
+            <textarea id="custAddress" placeholder="House No., Street, Area, City..."></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pincode <span class="req">*</span></label>
+            <input type="text" id="custPin" placeholder="e.g. 500001" maxlength="6" />
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="custCity" placeholder="e.g. Hyderabad" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-next" onclick="goToStep(2)">Next: Print Specs →</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: Print Specs + Upload ===== -->
+  <div class="step" id="step2">
+    <div class="step-card">
+      <h2><div class="icon">⚙️</div> Print Specifications</h2>
+
+      <label style="margin-bottom:8px; display:block;">Color <span class="req">*</span></label>
+      <div class="spec-grid" style="margin-bottom:1.2rem;">
+        <div class="spec-option selected" onclick="selectSpec(this,'color','bw')" data-group="color" data-val="bw">
+          <div class="spec-icon">⬛</div>
+          <div class="spec-label">Black & White</div>
+        </div>
+        <div class="spec-option" onclick="selectSpec(this,'color','color')" data-group="color" data-val="color">
+          <div class="spec-icon">🌈</div>
+          <div class="spec-label">Color Print</div>
+        </div>
+      </div>
+
+      <label style="margin-bottom:8px; display:block;">Sides <span class="req">*</span></label>
+      <div class="spec-grid" style="margin-bottom:1.2rem;">
+        <div class="spec-option selected" onclick="selectSpec(this,'sides','single')" data-group="sides" data-val="single">
+          <div class="spec-icon">📄</div>
+          <div class="spec-label">Single Sided</div>
+        </div>
+        <div class="spec-option" onclick="selectSpec(this,'sides','double')" data-group="sides" data-val="double">
+          <div class="spec-icon">📋</div>
+          <div class="spec-label">Double Sided</div>
+        </div>
+      </div>
+
+      <label style="margin-bottom:8px; display:block;">Paper Size <span class="req">*</span></label>
+      <div class="spec-grid" style="margin-bottom:1.2rem;">
+        <div class="spec-option selected" onclick="selectSpec(this,'size','a4')" data-group="size" data-val="a4">
+          <div class="spec-icon">📃</div>
+          <div class="spec-label">A4</div>
+        </div>
+        <div class="spec-option" onclick="selectSpec(this,'size','a3')" data-group="size" data-val="a3">
+          <div class="spec-icon">🗞️</div>
+          <div class="spec-label">A3</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Number of Copies <span class="req">*</span></label>
+          <input type="number" id="numCopies" value="1" min="1" max="500" oninput="calcPrice()" />
+        </div>
+        <div class="form-group">
+          <label>Number of Pages (approx)</label>
+          <input type="number" id="numPages" value="1" min="1" oninput="calcPrice()" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label>Special Instructions</label>
+        <textarea id="specNotes" placeholder="e.g. Staple, landscape mode, specific page range..."></textarea>
+      </div>
+
+      <!-- Price Estimator -->
+      <div class="price-box">
+        <div class="price-row"><span>Per page rate</span><span id="rateDisplay">₹2</span></div>
+        <div class="price-row"><span>Pages × Copies</span><span id="pagesCalc">1 × 1</span></div>
+        <div class="price-row total"><span>Estimated Total</span><span id="estTotal">₹2</span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <h2><div class="icon">📁</div> Upload Your Document</h2>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="docFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="handleUpload(this)" />
+        <div class="upload-icon">📤</div>
+        <div class="upload-text"><strong>Click to upload</strong> or drag & drop</div>
+        <div class="upload-text" style="margin-top:4px;">PDF, Word, JPG, PNG supported</div>
+        <div class="file-name" id="fileName"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goToStep(1)">← Back</button>
+      <button class="btn btn-next" onclick="goToStep(3)">Next: Payment →</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 3: Payment ===== -->
+  <div class="step" id="step3">
+    <div class="step-card">
+      <h2><div class="icon">💳</div> Scan & Pay</h2>
+
+      <div class="qr-container">
+        <!-- 
+          =====================================================
+          PASTE YOUR QR CODE IMAGE PATH BELOW
+          Replace "your-qr-code.png" with your actual QR file
+          Put your QR image in the images/ or assets/ folder
+          =====================================================
+        -->
+        <img src="../images/your-qr-code.png" alt="Payment QR Code" class="qr-img"
+          onerror="this.style.display='none'; document.getElementById('qrFallback').style.display='flex';" />
+
+        <div id="qrFallback" style="display:none; flex-direction:column; align-items:center; justify-content:center;
+          width:200px; height:200px; border:3px dashed #3182ce; border-radius:12px; margin:0 auto; background:#1a365d;">
+          <div style="font-size:2.5rem;">📱</div>
+          <div style="font-size:0.75rem; color:#63b3ed; margin-top:6px; text-align:center; padding:0 10px;">
+            Add your QR image to images/your-qr-code.png
+          </div>
+        </div>
+
+        <div class="qr-amount" id="qrAmount">₹2</div>
+        <div class="qr-instruction">
+          Open GPay / PhonePe / Paytm → Scan QR → Pay exact amount shown above
+        </div>
+      </div>
+
+      <div class="txn-box">
+        <label>Enter Transaction / UTR ID after paying <span class="req">*</span></label>
+        <input type="text" id="txnId" placeholder="e.g. T2506251234567890 or 12-digit UTR" />
+        <div style="font-size:0.78rem; color:#718096; margin-top:6px;">
+          Find this in your payment app under transaction history
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goToStep(2)">← Back</button>
+      <button class="btn btn-next" onclick="goToStep(4)">Next: Confirm →</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 4: Confirm ===== -->
+  <div class="step" id="step4">
+    <div class="step-card">
+      <h2><div class="icon">✅</div> Order Summary</h2>
+      <div id="summaryContent"></div>
+    </div>
+
+    <div class="step-card">
+      <button class="btn btn-confirm" id="confirmBtn" onclick="submitOrder()">
+        🚀 Place Order & Notify Shop
+      </button>
+      <div style="font-size:0.78rem; color:#718096; text-align:center; margin-top:10px;">
+        Order details will be sent to the shop via WhatsApp & Email
+      </div>
+    </div>
+
+    <div class="btn-row" style="justify-content:flex-start;">
+      <button class="btn btn-back" onclick="goToStep(3)">← Back</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <div class="modal-icon">🎉</div>
+    <h2>Order Placed!</h2>
+    <p>Your print order has been received. The shop has been notified via WhatsApp & Email.</p>
+    <div class="track-id" id="trackingDisplay">SL-XXXXXXXX</div>
+    <p style="font-size:0.82rem; margin-bottom:1.5rem;">Save this tracking ID for reference</p>
+    <button class="btn" onclick="window.location.href='../index.html'">Back to Home</button>
+  </div>
+</div>
+
+<script>
+// =====================================================
+//  CONFIGURATION — EDIT THESE VALUES
+// =====================================================
+
+const CONFIG = {
+  // Your WhatsApp number with country code (no + or spaces)
+  whatsappNumber: '919XXXXXXXXX',   // e.g. '919876543210'
+
+  // EmailJS — Sign up free at emailjs.com
+  emailjsServiceId:  'service_v87735r',    // from EmailJS dashboard
+  emailjsTemplateId: 'template_vwjh9an',   // from EmailJS dashboard
+  emailjsPublicKey:  '7AuTiIKiUkz6TTj_imKN-',    // from EmailJS dashboard
+
+  // Your email where orders will arrive
+  shopEmail: 'yourshop@gmail.com',
+
+  // Pricing (per page in ₹)
+  price: {
+    bw_single_a4:     2,
+    bw_single_a3:     4,
+    bw_double_a4:     3,
+    bw_double_a3:     6,
+    color_single_a4:  10,
+    color_single_a3:  18,
+    color_double_a4:  18,
+    color_double_a3:  30,
+  }
+};
+
+// =====================================================
+//  STATE
+// =====================================================
+
+let specs = { color: 'bw', sides: 'single', size: 'a4' };
+let deliveryType = 'pickup';
+
+// Init EmailJS
+emailjs.init(CONFIG.emailjsPublicKey);
+
+// =====================================================
+//  NAVIGATION
+// =====================================================
+
+function goToStep(n) {
+  if (n === 2 && !validateStep1()) return;
+  if (n === 3 && !validateStep2()) return;
+  if (n === 4 && !validateStep3()) return;
+
+  [1,2,3,4].forEach(i => {
+    document.getElementById('step' + i).classList.remove('active');
+    const pc = document.getElementById('pc' + i);
+    const pl = document.getElementById('pl' + i);
+    if (i < n) {
+      pc.classList.remove('active'); pc.classList.add('done'); pc.textContent = '✓';
+    } else if (i === n) {
+      pc.classList.remove('done'); pc.classList.add('active'); pc.textContent = i;
+      pl.classList.add('active');
+    } else {
+      pc.classList.remove('active','done'); pc.textContent = i;
+      pl.classList.remove('active');
+    }
+    if (i < 4) {
+      const line = document.getElementById('pline' + i);
+      if (line) line.classList.toggle('done', i < n);
+    }
+  });
+
+  document.getElementById('step' + n).classList.add('active');
+  if (n === 4) buildSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// =====================================================
+//  VALIDATION
+// =====================================================
+
+function validateStep1() {
+  const name  = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const email = document.getElementById('custEmail').value.trim();
+  if (!name)  { alert('Please enter your full name.'); return false; }
+  if (!phone || phone.length < 10) { alert('Please enter a valid 10-digit mobile number.'); return false; }
+  if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return false; }
+  if (deliveryType === 'delivery') {
+    const addr = document.getElementById('custAddress').value.trim();
+    const pin  = document.getElementById('custPin').value.trim();
+    if (!addr) { alert('Please enter your delivery address.'); return false; }
+    if (!pin || pin.length < 6) { alert('Please enter a valid 6-digit pincode.'); return false; }
+  }
+  return true;
+}
+
+function validateStep2() {
+  const copies = document.getElementById('numCopies').value;
+  const file   = document.getElementById('docFile').files[0];
+  if (!copies || copies < 1) { alert('Please enter number of copies.'); return false; }
+  if (!file) { alert('Please upload your document.'); return false; }
+  return true;
+}
+
+function validateStep3() {
+  const txn = document.getElementById('txnId').value.trim();
+  if (!txn) { alert('Please enter your Transaction / UTR ID after paying.'); return false; }
+  return true;
+}
+
+// =====================================================
+//  SPEC SELECTION
+// =====================================================
+
+function selectSpec(el, group, val) {
+  document.querySelectorAll('[data-group="' + group + '"]').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  specs[group] = val;
+  calcPrice();
+}
+
+function getRate() {
+  const key = specs.color + '_' + specs.sides + '_' + specs.size;
+  return CONFIG.price[key] || 2;
+}
+
+function calcPrice() {
+  const copies = parseInt(document.getElementById('numCopies').value) || 1;
+  const pages  = parseInt(document.getElementById('numPages').value)  || 1;
+  const rate   = getRate();
+  const total  = rate * copies * pages;
+  document.getElementById('rateDisplay').textContent = '₹' + rate;
+  document.getElementById('pagesCalc').textContent   = pages + ' pages × ' + copies + ' copies';
+  document.getElementById('estTotal').textContent    = '₹' + total;
+  document.getElementById('qrAmount').textContent    = '₹' + total;
+}
+
+// =====================================================
+//  DELIVERY TOGGLE
+// =====================================================
+
+function setDelivery(type, btn) {
+  deliveryType = type;
+  document.querySelectorAll('.delivery-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const extra = document.getElementById('deliveryFields');
+  extra.classList.toggle('show', type === 'delivery');
+}
+
+// =====================================================
+//  FILE UPLOAD
+// =====================================================
+
+function handleUpload(input) {
+  const file = input.files[0];
+  const zone = document.getElementById('uploadZone');
+  const name = document.getElementById('fileName');
+  if (file) {
+    zone.classList.add('has-file');
+    name.textContent = '✅ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+  }
+}
+
+// =====================================================
+//  SUMMARY
+// =====================================================
+
+function buildSummary() {
+  const copies = document.getElementById('numCopies').value;
+  const pages  = document.getElementById('numPages').value;
+  const rate   = getRate();
+  const total  = rate * parseInt(copies) * parseInt(pages);
+  const file   = document.getElementById('docFile').files[0];
+  const addr   = deliveryType === 'delivery'
+    ? document.getElementById('custAddress').value + ', ' + document.getElementById('custPin').value
+    : 'Store Pickup';
+
+  const rows = [
+    ['👤 Name',       document.getElementById('custName').value],
+    ['📱 Mobile',     document.getElementById('custPhone').value],
+    ['📧 Email',      document.getElementById('custEmail').value],
+    ['🚚 Delivery',   deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery'],
+    ['📍 Address',    addr],
+    ['🎨 Color',      specs.color === 'bw' ? 'Black & White' : 'Color Print'],
+    ['📄 Sides',      specs.sides === 'single' ? 'Single Sided' : 'Double Sided'],
+    ['📐 Paper Size', specs.size.toUpperCase()],
+    ['📋 Copies',     copies],
+    ['📑 Pages',      pages],
+    ['📁 File',       file ? file.name : 'N/A'],
+    ['📝 Notes',      document.getElementById('specNotes').value || '—'],
+    ['🔖 Txn ID',     document.getElementById('txnId').value],
+    ['💰 Total Paid', '₹' + total],
+  ];
+
+  document.getElementById('summaryContent').innerHTML = rows.map(([l, v]) =>
+    `<div class="summary-item"><span class="s-label">${l}</span><span class="s-value">${v}</span></div>`
+  ).join('');
+}
+
+// =====================================================
+//  SUBMIT ORDER
+// =====================================================
+
+async function submitOrder() {
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Sending order...';
+
+  const copies = document.getElementById('numCopies').value;
+  const pages  = document.getElementById('numPages').value;
+  const rate   = getRate();
+  const total  = rate * parseInt(copies) * parseInt(pages);
+  const file   = document.getElementById('docFile').files[0];
+  const name   = document.getElementById('custName').value;
+  const phone  = document.getElementById('custPhone').value;
+  const email  = document.getElementById('custEmail').value;
+  const txnId  = document.getElementById('txnId').value;
+  const notes  = document.getElementById('specNotes').value || 'None';
+  const addr   = deliveryType === 'delivery'
+    ? document.getElementById('custAddress').value + ', Pin: ' + document.getElementById('custPin').value
+    : 'Store Pickup';
+
+  const trackId = 'SL' + Date.now().toString().slice(-8).toUpperCase();
+
+  // --- Build order message ---
+  const orderMsg = `
+🖨️ *NEW PRINT ORDER — SevaLink*
+━━━━━━━━━━━━━━━━━━
+🔖 Order ID: ${trackId}
+━━━━━━━━━━━━━━━━━━
+👤 *Customer Details*
+• Name: ${name}
+• Mobile: ${phone}
+• Email: ${email}
+• Delivery: ${deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery'}
+• Address: ${addr}
+━━━━━━━━━━━━━━━━━━
+🖨️ *Print Specifications*
+• Color: ${specs.color === 'bw' ? 'Black & White' : 'Color'}
+• Sides: ${specs.sides === 'single' ? 'Single Sided' : 'Double Sided'}
+• Paper: ${specs.size.toUpperCase()}
+• Copies: ${copies}
+• Pages: ${pages}
+• File: ${file ? file.name : 'N/A'}
+• Notes: ${notes}
+━━━━━━━━━━━━━━━━━━
+💰 *Payment*
+• Amount: ₹${total}
+• Txn ID: ${txnId}
+━━━━━━━━━━━━━━━━━━
+  `.trim();
+
+  // --- 1. Send WhatsApp ---
+  const waUrl = 'https://wa.me/' + CONFIG.whatsappNumber + '?text=' + encodeURIComponent(orderMsg);
+  window.open(waUrl, '_blank');
+
+  // --- 2. Send Email via EmailJS ---
+  try {
+    await emailjs.send(CONFIG.emailjsServiceId, CONFIG.emailjsTemplateId, {
+      to_email:   CONFIG.shopEmail,
+      order_id:   trackId,
+      cust_name:  name,
+      cust_phone: phone,
+      cust_email: email,
+      delivery:   deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery — ' + addr,
+      color:      specs.color === 'bw' ? 'Black & White' : 'Color',
+      sides:      specs.sides === 'single' ? 'Single Sided' : 'Double Sided',
+      paper:      specs.size.toUpperCase(),
+      copies:     copies,
+      pages:      pages,
+      file_name:  file ? file.name : 'N/A',
+      spec_notes: notes,
+      amount:     '₹' + total,
+      txn_id:     txnId,
+    });
+  } catch (e) {
+    console.warn('Email send failed:', e);
+  }
+
+  // --- 3. Save to localStorage ---
+  const orders = JSON.parse(localStorage.getItem('sevaOrders') || '[]');
+  orders.push({
+    id: trackId, name, phone, email, deliveryType, addr,
+    specs, copies, pages, file: file?.name, notes,
+    amount: total, txnId,
+    status: 'Pending',
+    date: new Date().toLocaleString('en-IN'),
+  });
+  localStorage.setItem('sevaOrders', JSON.stringify(orders));
+
+  // --- 4. Show success ---
+  document.getElementById('trackingDisplay').textContent = trackId;
+  document.getElementById('successModal').classList.add('open');
+  btn.disabled = false;
+  btn.textContent = '🚀 Place Order & Notify Shop';
+}
+</script>
+</body>
+</html>
