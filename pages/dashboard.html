@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Orders — SevaLink</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="../index.html" class="logo"><span class="logo-icon">🔗</span><span>SevaLink</span></a>
+      <ul class="nav-links">
+        <li><a href="book.html" class="btn-nav">+ New Booking</a></li>
+        <li><a href="#" onclick="logout()" style="color:var(--text-muted)">Logout</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="dashboard-page">
+    <div class="container">
+      <div style="margin-bottom:32px;">
+        <h2 id="dashGreeting" style="font-family:var(--font-head);font-weight:800;font-size:2rem;color:var(--secondary);">My Orders</h2>
+        <p style="color:var(--text-muted);">Track all your service bookings in one place.</p>
+      </div>
+
+      <!-- Stats Row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:36px;" id="statsRow"></div>
+
+      <!-- Orders -->
+      <div id="ordersList">
+        <p style="color:var(--text-muted);text-align:center;padding:48px 0;">No orders yet. <a href="book.html" style="color:var(--primary);font-weight:700;">Book your first service →</a></p>
+      </div>
+
+      <!-- Demo Controls (for testing) -->
+      <div style="background:rgba(255,107,26,0.06);border:1px solid rgba(255,107,26,0.2);border-radius:16px;padding:24px;margin-top:40px;">
+        <h3 style="font-family:var(--font-head);font-weight:700;color:var(--secondary);margin-bottom:8px;">🛠️ Demo Controls</h3>
+        <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:16px;">Simulate order status updates (for demo purposes)</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn-primary" onclick="addDemoOrder()" style="padding:10px 20px;font-size:0.88rem;">+ Add Demo Order</button>
+          <button class="btn-ghost" onclick="progressOrders()" style="padding:10px 20px;font-size:0.88rem;">▶ Progress Orders</button>
+          <button class="btn-ghost" onclick="clearOrders()" style="padding:10px 20px;font-size:0.88rem;border-color:#e74c3c;color:#e74c3c;">🗑 Clear All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script>
+    const statusFlow = ['Pending', 'Partner Assigned', 'In Progress', 'Completed'];
+    const statusClasses = { 'Pending': 'status-pending', 'Partner Assigned': 'status-progress', 'In Progress': 'status-progress', 'Completed': 'status-done' };
+
+    function getOrders() { return JSON.parse(localStorage.getItem('sevaOrders') || '[]'); }
+    function saveOrders(o) { localStorage.setItem('sevaOrders', JSON.stringify(o)); }
+
+    function renderOrders() {
+      const orders = getOrders();
+      const list = document.getElementById('ordersList');
+      const stats = document.getElementById('statsRow');
+
+      // Stats
+      const total = orders.length;
+      const done = orders.filter(o => o.status === 'Completed').length;
+      const pending = orders.filter(o => o.status === 'Pending').length;
+      const spent = orders.reduce((s, o) => s + (o.price || 0), 0);
+      stats.innerHTML = `
+        <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px 24px;">
+          <div style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;color:var(--primary)">${total}</div>
+          <div style="color:var(--text-muted);font-size:0.85rem">Total Bookings</div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px 24px;">
+          <div style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;color:#27ae60">${done}</div>
+          <div style="color:var(--text-muted);font-size:0.85rem">Completed</div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px 24px;">
+          <div style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;color:#b8860b">${pending}</div>
+          <div style="color:var(--text-muted);font-size:0.85rem">Pending</div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px 24px;">
+          <div style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;color:var(--secondary)">₹${spent}</div>
+          <div style="color:var(--text-muted);font-size:0.85rem">Total Spent</div>
+        </div>
+      `;
+
+      if (orders.length === 0) {
+        list.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:48px 0;">No orders yet. <a href="book.html" style="color:var(--primary);font-weight:700;">Book your first service →</a></p>`;
+        return;
+      }
+
+      list.innerHTML = [...orders].reverse().map(o => `
+        <div class="order-card">
+          <div style="flex:1">
+            <div style="font-family:var(--font-head);font-weight:700;color:var(--secondary);font-size:1rem;margin-bottom:4px;">${o.service}</div>
+            <div style="color:var(--text-muted);font-size:0.83rem;margin-bottom:6px;">🔖 ${o.id} &nbsp;•&nbsp; 📅 ${o.date}</div>
+            <div style="font-size:0.83rem;color:var(--text-muted)">👤 ${o.name || 'Guest'} &nbsp;•&nbsp; 💳 ${o.payMethod?.toUpperCase() || 'N/A'} &nbsp;•&nbsp; <strong style="color:var(--primary)">₹${o.price}</strong></div>
+          </div>
+          <div>
+            <span class="order-status-badge ${statusClasses[o.status] || 'status-pending'}">${o.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addDemoOrder() {
+      const services = ['Aadhaar Update', 'PAN Card', 'Income Certificate', 'Voter ID', 'Ticket Booking'];
+      const methods = ['upi', 'card', 'cod'];
+      const svc = services[Math.floor(Math.random() * services.length)];
+      const orders = getOrders();
+      orders.push({
+        id: 'SL' + Date.now().toString().slice(-8),
+        service: svc,
+        price: Math.floor(Math.random() * 60) + 25,
+        name: 'Demo User',
+        phone: '+91 9000000000',
+        payMethod: methods[Math.floor(Math.random() * methods.length)],
+        status: 'Pending',
+        date: new Date().toLocaleString('en-IN'),
+      });
+      saveOrders(orders);
+      renderOrders();
+    }
+
+    function progressOrders() {
+      const orders = getOrders();
+      orders.forEach(o => {
+        const idx = statusFlow.indexOf(o.status);
+        if (idx < statusFlow.length - 1) o.status = statusFlow[idx + 1];
+      });
+      saveOrders(orders);
+      renderOrders();
+    }
+
+    function clearOrders() {
+      if (confirm('Clear all orders?')) {
+        localStorage.removeItem('sevaOrders');
+        renderOrders();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('sevaCurrentUser');
+      window.location.href = '../index.html';
+    }
+
+    // Greet user
+    const user = JSON.parse(localStorage.getItem('sevaCurrentUser') || 'null');
+    if (user) document.getElementById('dashGreeting').textContent = '👋 Hello, ' + user.name + '!';
+
+    renderOrders();
+  </script>
+</body>
+</html>

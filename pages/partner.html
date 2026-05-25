@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Partner Registration — SevaLink</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="../index.html" class="logo"><span class="logo-icon">🔗</span><span>SevaLink</span></a>
+      <ul class="nav-links">
+        <li><a href="book.html" class="btn-nav">Book a Service</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="auth-page" style="align-items:flex-start;padding-top:100px;">
+    <div class="auth-card" style="max-width:560px;">
+      <h2>🏪 Register as Partner</h2>
+      <p class="auth-sub">List your cyber cafe on SevaLink and earn more. Join hundreds of verified partners across India.</p>
+
+      <div id="partnerAlert"></div>
+
+      <div class="form-group">
+        <label>Cafe / Business Name *</label>
+        <input type="text" id="cafeName" placeholder="e.g. Ravi's Cyber Cafe"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Owner Name *</label>
+          <input type="text" id="ownerName" placeholder="Full name"/>
+        </div>
+        <div class="form-group">
+          <label>Mobile Number *</label>
+          <input type="tel" id="partnerPhone" placeholder="+91 9XXXXXXXXX"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Address *</label>
+        <textarea id="cafeAddress" placeholder="Street, area, city..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pincode *</label>
+          <input type="text" id="cafePin" placeholder="e.g. 500001"/>
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <select id="cafeState">
+            <option>Telangana</option><option>Andhra Pradesh</option><option>Maharashtra</option>
+            <option>Uttar Pradesh</option><option>Rajasthan</option><option>Bihar</option>
+            <option>West Bengal</option><option>Tamil Nadu</option><option>Karnataka</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Services Available (select all that apply)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:600;color:var(--text);font-size:0.88rem;"><input type="checkbox" value="Aadhaar"/> Aadhaar</label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:600;color:var(--text);font-size:0.88rem;"><input type="checkbox" value="PAN Card"/> PAN Card</label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:600;color:var(--text);font-size:0.88rem;"><input type="checkbox" value="Certificates"/> Certificates</label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:600;color:var(--text);font-size:0.88rem;"><input type="checkbox" value="Voter ID"/> Voter ID</label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:600;color:var(--text);font-size:0.88rem;"><input type="checkbox" value="Print & Scan"/> Print & Scan</label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:600;color:var(--text);font-size:0.88rem;"><input type="checkbox" value="Ticket Booking"/> Ticket Booking</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Listing Plan</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+          <label style="border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;" id="planBasic">
+            <input type="radio" name="plan" value="basic" checked style="margin-right:8px;"/>
+            <strong style="font-family:var(--font-head);">Basic</strong><br/>
+            <span style="font-size:0.82rem;color:var(--text-muted);">₹199/month — Standard listing</span>
+          </label>
+          <label style="border:2px solid var(--primary);border-radius:12px;padding:16px;cursor:pointer;background:rgba(255,107,26,0.05);" id="planPremium">
+            <input type="radio" name="plan" value="premium" style="margin-right:8px;"/>
+            <strong style="font-family:var(--font-head);color:var(--primary);">⭐ Premium</strong><br/>
+            <span style="font-size:0.82rem;color:var(--text-muted);">₹499/month — Top priority listing</span>
+          </label>
+        </div>
+      </div>
+      <button class="btn-primary btn-full" onclick="registerPartner()">Submit Registration →</button>
+      <p class="auth-sub" style="margin-top:14px;font-size:0.82rem;">Our team will verify your cafe and contact you within 24 hours.</p>
+    </div>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script>
+    function showAlert(type, msg) {
+      document.getElementById('partnerAlert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+    }
+
+    function registerPartner() {
+      const name = document.getElementById('cafeName').value.trim();
+      const owner = document.getElementById('ownerName').value.trim();
+      const phone = document.getElementById('partnerPhone').value.trim();
+      const address = document.getElementById('cafeAddress').value.trim();
+      const pin = document.getElementById('cafePin').value.trim();
+      if (!name || !owner || !phone || !address || !pin) {
+        showAlert('error', '⚠️ Please fill in all required fields.');
+        return;
+      }
+      const plan = document.querySelector('input[name="plan"]:checked')?.value || 'basic';
+      const partners = JSON.parse(localStorage.getItem('sevaPartners') || '[]');
+      partners.push({ name, owner, phone, address, pin, plan, status: 'Pending Verification', date: new Date().toLocaleString('en-IN') });
+      localStorage.setItem('sevaPartners', JSON.stringify(partners));
+      showAlert('success', '✅ Registration submitted! Our team will contact you at ' + phone + ' within 24 hours.');
+      setTimeout(() => window.location.href = '../index.html', 2500);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book a Service — SevaLink</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="../index.html" class="logo"><span class="logo-icon">🔗</span><span>SevaLink</span></a>
+      <ul class="nav-links">
+        <li><a href="../index.html#services">Services</a></li>
+        <li><a href="login.html">Login</a></li>
+        <li><a href="dashboard.html">My Orders</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="booking-page">
+    <div class="container">
+      <h2>📋 Book a Service</h2>
+      <p>Select your service, fill details, and pay securely. Your nearest verified partner will handle the rest.</p>
+
+      <!-- Step indicator -->
+      <div class="step-indicator">
+        <div class="step-dot active" id="dot1"></div>
+        <div class="step-dot" id="dot2"></div>
+        <div class="step-dot" id="dot3"></div>
+      </div>
+
+      <div class="booking-card">
+
+        <!-- STEP 1: Select Service -->
+        <div id="step1">
+          <div class="section-label">Step 1 — Choose a Service</div>
+          <div class="service-select-grid">
+            <div class="svc-btn" data-service="Aadhaar Update" data-price="50" onclick="selectService(this)"><span class="svc-em">🪪</span>Aadhaar</div>
+            <div class="svc-btn" data-service="PAN Card" data-price="60" onclick="selectService(this)"><span class="svc-em">💳</span>PAN Card</div>
+            <div class="svc-btn" data-service="Voter ID" data-price="40" onclick="selectService(this)"><span class="svc-em">🗳️</span>Voter ID</div>
+            <div class="svc-btn" data-service="Income Certificate" data-price="70" onclick="selectService(this)"><span class="svc-em">📜</span>Certificate</div>
+            <div class="svc-btn" data-service="Birth Certificate" data-price="60" onclick="selectService(this)"><span class="svc-em">👶</span>Birth/Death</div>
+            <div class="svc-btn" data-service="Govt. Scheme Form" data-price="30" onclick="selectService(this)"><span class="svc-em">🏦</span>Govt. Scheme</div>
+            <div class="svc-btn" data-service="Ticket Booking" data-price="25" onclick="selectService(this)"><span class="svc-em">🎫</span>Ticket</div>
+            <div class="svc-btn" data-service="Print & Scan" data-price="15" onclick="selectService(this)"><span class="svc-em">📠</span>Print/Scan</div>
+            <div class="svc-btn" data-service="RTI Filing" data-price="80" onclick="selectService(this)"><span class="svc-em">🔎</span>RTI</div>
+          </div>
+          <button class="btn-primary" id="nextBtn1" onclick="goStep(2)" style="opacity:0.5;cursor:not-allowed" disabled>Next: Fill Details →</button>
+        </div>
+
+        <!-- STEP 2: User Details -->
+        <div id="step2" style="display:none;">
+          <div class="section-label">Step 2 — Your Details</div>
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="userName" placeholder="e.g. Ramesh Kumar" required/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mobile Number *</label>
+              <input type="tel" id="userPhone" placeholder="+91 9XXXXXXXXX" required/>
+            </div>
+            <div class="form-group">
+              <label>Pincode *</label>
+              <input type="text" id="userPin" placeholder="e.g. 500001" required/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Address / Landmark</label>
+            <textarea id="userAddress" placeholder="House no., street, area..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Additional Notes</label>
+            <textarea id="userNotes" placeholder="Any special instructions for the partner..."></textarea>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:8px;">
+            <button class="btn-ghost" onclick="goStep(1)">← Back</button>
+            <button class="btn-primary" onclick="goStep(3)">Next: Payment →</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Confirm & Pay -->
+        <div id="step3" style="display:none;">
+          <div class="section-label">Step 3 — Confirm & Pay</div>
+          <div class="order-summary">
+            <div class="order-row"><span>Service</span><span id="confirmService">—</span></div>
+            <div class="order-row"><span>Convenience Fee</span><span id="confirmFee">—</span></div>
+            <div class="order-row"><span>Platform Charge</span><span>₹10</span></div>
+            <div class="order-row"><span><strong>Total</strong></span><span id="confirmTotal">—</span></div>
+          </div>
+          <div class="form-group">
+            <label>Choose Payment Method</label>
+          </div>
+          <div class="payment-tabs">
+            <div class="pay-tab active" onclick="switchPayTab('upi',this)">📱 UPI</div>
+            <div class="pay-tab" onclick="switchPayTab('card',this)">💳 Card</div>
+            <div class="pay-tab" onclick="switchPayTab('cod',this)">💵 Cash on Delivery</div>
+          </div>
+
+          <!-- UPI Panel -->
+          <div class="pay-panel active" id="panel-upi">
+            <div class="form-group">
+              <label>UPI ID</label>
+              <input type="text" id="upiId" placeholder="yourname@upi" />
+            </div>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">Enter your UPI ID and click Pay. A payment request will be sent.</p>
+          </div>
+
+          <!-- Card Panel -->
+          <div class="pay-panel" id="panel-card">
+            <div class="form-group">
+              <label>Card Number</label>
+              <input type="text" id="cardNum" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" oninput="formatCard(this)"/>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Expiry</label>
+                <input type="text" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)"/>
+              </div>
+              <div class="form-group">
+                <label>CVV</label>
+                <input type="password" placeholder="•••" maxlength="3"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Name on Card</label>
+              <input type="text" placeholder="As printed on card"/>
+            </div>
+          </div>
+
+          <!-- Cash on Delivery Panel -->
+          <div class="pay-panel" id="panel-cod">
+            <div style="background:rgba(255,201,74,0.12);border:1px solid rgba(255,201,74,0.3);border-radius:12px;padding:18px;margin-bottom:16px;">
+              <p style="font-family:var(--font-head);font-weight:700;color:#b8860b;">💵 Cash on Delivery</p>
+              <p style="font-size:0.88rem;color:var(--text-muted);margin-top:4px;">Pay cash to the partner when the service is completed. Photo proof will be shared.</p>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button class="btn-ghost" onclick="goStep(2)">← Back</button>
+            <button class="btn-primary" id="payBtn" onclick="processPayment()">🔒 Pay &amp; Confirm</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="success-anim">
+        <div class="check-icon">✅</div>
+        <h3>Booking Confirmed!</h3>
+        <p>Your service request has been placed. A verified partner near you will start shortly.</p>
+        <div class="tracking-id" id="trackingIdDisplay"></div>
+        <div style="margin-top:24px;display:flex;gap:12px;justify-content:center;">
+          <a href="dashboard.html" class="btn-primary">Track My Order</a>
+          <a href="book.html" class="btn-ghost" onclick="location.reload()">Book Another</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/booking.js"></script>
+</body>
+</html>
