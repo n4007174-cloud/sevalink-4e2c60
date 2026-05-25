@@ -252,7 +252,7 @@
       color: #718096;
     }
 
-    .upload-text strong { color: #63b3ed; }
+    .upload-text Triangle { color: #63b3ed; }
     .file-name { font-size: 0.85rem; color: #68d391; margin-top: 6px; }
 
     /* Price Estimator */
@@ -502,14 +502,12 @@
 </head>
 <body>
 
-<!-- Header -->
 <div class="po-header">
   <a href="../index.html">← Back</a>
   <span>/</span>
   <h1>🖨️ Print & Scan Order</h1>
 </div>
 
-<!-- Progress -->
 <div class="progress-bar">
   <div class="pb-step">
     <div class="pb-circle active" id="pc1">1</div>
@@ -534,7 +532,6 @@
 
 <div class="po-container">
 
-  <!-- ===== STEP 1: Customer Details ===== -->
   <div class="step active" id="step1">
     <div class="step-card">
       <h2><div class="icon">👤</div> Your Details</h2>
@@ -557,7 +554,6 @@
         </div>
       </div>
 
-      <!-- Delivery / Pickup Toggle -->
       <label style="margin-bottom:8px; display:block;">Delivery Option <span class="req">*</span></label>
       <div class="delivery-toggle">
         <button class="delivery-btn active" onclick="setDelivery('pickup', this)">🏪 Store Pickup</button>
@@ -589,7 +585,6 @@
     </div>
   </div>
 
-  <!-- ===== STEP 2: Print Specs + Upload ===== -->
   <div class="step" id="step2">
     <div class="step-card">
       <h2><div class="icon">⚙️</div> Print Specifications</h2>
@@ -646,7 +641,6 @@
         <textarea id="specNotes" placeholder="e.g. Staple, landscape mode, specific page range..."></textarea>
       </div>
 
-      <!-- Price Estimator -->
       <div class="price-box">
         <div class="price-row"><span>Per page rate</span><span id="rateDisplay">₹2</span></div>
         <div class="price-row"><span>Pages × Copies</span><span id="pagesCalc">1 × 1</span></div>
@@ -671,19 +665,11 @@
     </div>
   </div>
 
-  <!-- ===== STEP 3: Payment ===== -->
   <div class="step" id="step3">
     <div class="step-card">
       <h2><div class="icon">💳</div> Scan & Pay</h2>
 
       <div class="qr-container">
-        <!-- 
-          =====================================================
-          PASTE YOUR QR CODE IMAGE PATH BELOW
-          Replace "your-qr-code.png" with your actual QR file
-          Put your QR image in the images/ or assets/ folder
-          =====================================================
-        -->
         <img src="../image.jpeg" alt="Payment QR Code" class="qr-img"
           onerror="this.style.display='none'; document.getElementById('qrFallback').style.display='flex';" />
 
@@ -716,7 +702,6 @@
     </div>
   </div>
 
-  <!-- ===== STEP 4: Confirm ===== -->
   <div class="step" id="step4">
     <div class="step-card">
       <h2><div class="icon">✅</div> Order Summary</h2>
@@ -739,7 +724,6 @@
 
 </div>
 
-<!-- Success Modal -->
 <div class="modal-overlay" id="successModal">
   <div class="modal-box">
     <div class="modal-icon">🎉</div>
@@ -757,18 +741,14 @@
 // =====================================================
 
 const CONFIG = {
-  // Your WhatsApp number with country code (no + or spaces)
-  whatsappNumber: '917981504698',   // e.g. '919876543210'
+  whatsappNumber: '917981504698',   
 
-  // EmailJS — Sign up free at emailjs.com
-  emailjsServiceId:  'service_v87735r',    // from EmailJS dashboard
-  emailjsTemplateId: 'template_vwjh9an',   // from EmailJS dashboard
-  emailjsPublicKey:  '7AuTiIKiUkz6TTj_imKN-',    // from EmailJS dashboard
+  emailjsServiceId:  'service_v87735r',    
+  emailjsTemplateId: 'template_vwjh9an',   
+  emailjsPublicKey:  '7AuTiIKiUkz6TTj_imKN-',    
 
-  // Your email where orders will arrive
   shopEmail: 'n4007174@gmail.com',
 
-  // Pricing (per page in ₹)
   price: {
     bw_single_a4:     2,
     bw_single_a3:     4,
@@ -788,7 +768,7 @@ const CONFIG = {
 let specs = { color: 'bw', sides: 'single', size: 'a4' };
 let deliveryType = 'pickup';
 
-// Init EmailJS
+// Initialize EmailJS cleanly using your layout public key
 emailjs.init(CONFIG.emailjsPublicKey);
 
 // =====================================================
@@ -972,7 +952,41 @@ async function submitOrder() {
 
   const trackId = 'SL' + Date.now().toString().slice(-8).toUpperCase();
 
-  // --- Build order message ---
+  // --- 1. First, dispatch Email via EmailJS ---
+  try {
+    const emailParams = {
+      to_email:   CONFIG.shopEmail,
+      order_id:   trackId,
+      cust_name:  name,
+      cust_phone: phone,
+      cust_email: email,
+      delivery:   deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery — ' + addr,
+      color:      specs.color === 'bw' ? 'Black & White' : 'Color',
+      sides:      specs.sides === 'single' ? 'Single Sided' : 'Double Sided',
+      paper:      specs.size.toUpperCase(),
+      copies:     copies,
+      pages:      pages,
+      file_name:  file ? file.name : 'N/A',
+      spec_notes: notes,
+      amount:     '₹' + total,
+      txn_id:     txnId,
+    };
+
+    // Explicitly awaiting ensures email pipeline fires fully before browser switches tasks
+    await emailjs.send(
+      CONFIG.emailjsServiceId, 
+      CONFIG.emailjsTemplateId, 
+      emailParams, 
+      CONFIG.emailjsPublicKey
+    );
+    console.log('Email dispatched successfully via EmailJS.');
+
+  } catch (e) {
+    console.error('EmailJS execution failed:', e);
+    alert('Email Error: ' + JSON.stringify(e) + '\nProceeding to open WhatsApp regardless.');
+  }
+
+  // --- 2. Build and trigger WhatsApp ---
   const orderMsg = `
 🖨️ *NEW PRINT ORDER — SevaLink*
 ━━━━━━━━━━━━━━━━━━
@@ -1000,32 +1014,8 @@ async function submitOrder() {
 ━━━━━━━━━━━━━━━━━━
   `.trim();
 
-  // --- 1. Send WhatsApp ---
   const waUrl = 'https://wa.me/' + CONFIG.whatsappNumber + '?text=' + encodeURIComponent(orderMsg);
   window.open(waUrl, '_blank');
-
-  // --- 2. Send Email via EmailJS ---
-  try {
-    await emailjs.send(CONFIG.emailjsServiceId, CONFIG.emailjsTemplateId, {
-      to_email:   CONFIG.shopEmail,
-      order_id:   trackId,
-      cust_name:  name,
-      cust_phone: phone,
-      cust_email: email,
-      delivery:   deliveryType === 'pickup' ? 'Store Pickup' : 'Home Delivery — ' + addr,
-      color:      specs.color === 'bw' ? 'Black & White' : 'Color',
-      sides:      specs.sides === 'single' ? 'Single Sided' : 'Double Sided',
-      paper:      specs.size.toUpperCase(),
-      copies:     copies,
-      pages:      pages,
-      file_name:  file ? file.name : 'N/A',
-      spec_notes: notes,
-      amount:     '₹' + total,
-      txn_id:     txnId,
-    });
-  } catch (e) {
-    console.warn('Email send failed:', e);
-  }
 
   // --- 3. Save to localStorage ---
   const orders = JSON.parse(localStorage.getItem('sevaOrders') || '[]');
@@ -1038,7 +1028,7 @@ async function submitOrder() {
   });
   localStorage.setItem('sevaOrders', JSON.stringify(orders));
 
-  // --- 4. Show success ---
+  // --- 4. Show success interface state ---
   document.getElementById('trackingDisplay').textContent = trackId;
   document.getElementById('successModal').classList.add('open');
   btn.disabled = false;
