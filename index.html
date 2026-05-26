@@ -10,6 +10,14 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Noto+Sans:wght@400;500&display=swap"
     rel="stylesheet" />
+  <script src="https://ucarecdn.com/libs/blinkloader/3.x/blinkloader.min.js"></script>
+<script type="module">
+  import { * as UC } from 'https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@v1/web/file-uploader.min.js';
+  UC.defineComponents(UC);
+</script>
+
+<uc-config ctx-name="my-uploader" pubkey="00ecea41f52005c70154"></uc-config>
+<uc-file-uploader ctx-name="my-uploader"></uc-file-uploader>
 </head>
 
 <body>
